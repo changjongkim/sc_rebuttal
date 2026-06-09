@@ -10,7 +10,7 @@ We thank the reviewers for the careful reading. We address each concern below.
 
 ## A. Baselines and the diskless-HPC gap (R2, R3, R4)
 
-The absence of Mooncake and IMPRESS follows from the target environment. The constraint is not
+The absence of Mooncake and IMPRESS is due to the target environment. The constraint is not
 node-local SSDs. It is the persistent, centralized control plane these systems require. Mooncake's
 global scheduler (Conductor) and metadata layer run as long-lived coordination services. This matches
 the persistent HTTP and etcd services noted in our Sec. IV-A. IMPRESS assumes node-local prefix
@@ -32,7 +32,7 @@ LMCache (Redis) as KV baselines. We will make this scoping explicit in the paper
 ## B. Novelty relative to the named prior works (R4)
 
 The contribution is not any single row of Table I. It is their unified coordination, which no named
-system provides in this environment. Each named work lacks a capability CASCADE requires.
+system provides in this environment. Each named work lacks a capability that CASCADE requires.
 
 - vLLM prefix caching keeps content-addressed prefixes in one node's GPU HBM. It has no cross-node
   sharing, no DRAM or PFS tiering, and no global deduplication.
