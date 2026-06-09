@@ -102,11 +102,7 @@ We agree that a one-bit existence map cannot indicate whether a block is shared.
 
 ## F. Fault tolerance and hardware generality (R1, R3, R4)
 
-- **Fault tolerance (R3).** CASCADE does not replicate KV blocks in memory, by design. When a node fails,
-  its blocks are recomputed or read from the durable Tier 3 (Lustre). Cached state is lost, but the
-  underlying data is not. In-memory replication would eliminate the 93 to 94 percent footprint
-  reduction (Fig. 12) that makes terabyte-scale caching feasible. So durability is handled by Lustre.
-  HA replication of the hot tiers is a possible extension.
+- **Fault tolerance (R3).** CASCADE adds no dedicated in-memory replication for high availability, by design. The shadow copies and working copies it holds are caches for access, not durability replicas. When a node fails, its cached blocks are recomputed or read from the durable Tier 3 (Lustre). Cached state is lost, but the underlying data is not. Dedicated replication would eliminate the 93 to 94 percent footprint reduction (Fig. 12) that makes terabyte-scale caching feasible. So durability is handled by Lustre. HA replication of the hot tiers is a possible extension.
 - **Tiering is not falsified (R4).** The tiered-hierarchy claim holds. The lowest tier is a POSIX backend
   addressed by a path. It maps directly to node-local NVMe on Frontier or to a parallel file system,
   with no code change. The diskless testbed is the hardest case. We chose it deliberately because it
@@ -125,31 +121,11 @@ We agree that a one-bit existence map cannot indicate whether a block is shared.
 
 ## G. Metrics, framework isolation, and compression (R1, R2, R4)
 
-- **TTFT terminology (R4).** The two metrics are kept distinct and are not misleading. The trace-driven
-  metric is defined in Sec. IV-A as retrieval latency. The standard end-to-end TTFT, including
-  prefill, is reported separately in Sec. IV-H. We will rename the trace metric to Block Retrieval
-  Latency to remove any ambiguity. This is a labeling change, not a change to any measurement.
-- **vLLM and PyTorch (R2, R4).** We respectfully disagree that the effects cannot be separated. We do not
-  claim our PyTorch runtime beats vLLM's fused kernels. Fig. 13b breaks TTFT down into the RDMA
-  retrieval path and the prefill it replaces. This isolates CASCADE's data-layer contribution,
-  independent of the runtime. Plain PyTorch is the conservative choice. It attributes the gain to
-  retrieval, not to kernel optimizations. Decode TPOT and scheduler integration belong to the serving
-  engine. They are the natural next step once CASCADE is integrated into one.
-- **Why vLLM-APC ON leads at small scale (R1).** In Fig. 13a, vLLM-APC ON is lower at small node counts.
-  Its fused PagedAttention keeps the prefix KV resident in GPU HBM, which our plain PyTorch runtime
-  does not. This advantage does not persist. As the working set exceeds single-node HBM, APC evicts
-  and falls back to full prefill. CASCADE holds its KV across the DRAM and Lustre tiers and keeps TTFT
-  flat (Sec. IV-H). The comparison shows that distributed caching capacity scales, not single-node
-  kernel speed.
-- **INT8 compression (R4).** Sec. III-C applies INT8 to all blocks and cites prior work reporting that
-  this quantization preserves inference accuracy. The same data path also supports uncompressed FP16,
-  so compression is separable from the core contribution. We will add a direct model-quality
-  measurement in revision as further evidence.
-- **Why CASCADE scales past the storage baselines (R1).** The mechanism is concrete. CASCADE resolves a
-  block in a 2.0 microsecond local index lookup. It then reads the block with one-sided RDMA that
-  needs no remote CPU. The baselines instead pay per-block metadata-server operations or central TCP
-  serialization. Both costs grow with node count. This is the source of the flat scaling in Sec. IV-B
-  and IV-C.
+- **TTFT terminology (R4).** The two metrics are kept distinct and are not misleading. The trace-driven metric is defined in Sec. IV-A as retrieval latency. The standard end-to-end TTFT, including prefill, is reported separately in Sec. IV-H. We will rename the trace metric to Block Retrieval Latency to remove any ambiguity. This is a labeling change, not a change to any measurement. 
+- **vLLM and PyTorch (R2, R4).** We respectfully disagree that the effects cannot be separated. We do not claim our PyTorch runtime beats vLLM's fused kernels. Fig. 13b breaks TTFT down into the RDMA retrieval path and the prefill it replaces. This isolates CASCADE's data-layer contribution, independent of the runtime. Plain PyTorch is the conservative choice. It attributes the gain to retrieval, not to kernel optimizations. Decode TPOT and scheduler integration belong to the serving engine. They are the natural next step once CASCADE is integrated into one. 
+- **Why vLLM-APC ON leads at small scale (R1).** In Fig. 13a, vLLM-APC ON is lower at small node counts. Its fused PagedAttention keeps the prefix KV resident in GPU HBM, which our plain PyTorch runtime does not. This advantage does not persist. As the working set exceeds single-node HBM, APC evicts and falls back to full prefill. CASCADE holds its KV across the DRAM and Lustre tiers and keeps TTFT flat (Sec. IV-H). The comparison shows that distributed caching capacity scales, not single-node kernel speed. 
+- **INT8 compression (R4).** Sec. III-C applies INT8 to all blocks and cites prior work reporting that this quantization preserves inference accuracy. The same data path also supports uncompressed FP16, so compression is separable from the core contribution. We will add a direct model-quality measurement in revision as further evidence. 
+- **Why CASCADE scales past the storage baselines (R1).** CASCADE resolves a block in a 2.0 microsecond local index lookup. It then reads the block with one-sided RDMA that needs no remote CPU. The baselines instead pay per-block metadata-server operations or central TCP serialization. Both costs grow with node count. This is the source of the flat scaling in Sec. IV-B and IV-C.
 
 ## H. Scale and statistical reporting (R4)
 
