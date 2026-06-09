@@ -53,9 +53,9 @@ novelty. We will add the cited works and clarify this distinction.
 
 ## C. BlockID correctness: a factual correction (R2, R4)
 
-This valid concern comes from an ambiguity in our wording, not the implementation. The reviewers read
-Sec. III-B as hashing only block-local tokens, which would give different prefixes the same BlockID.
-The implementation does not do this. A BlockID is a SHA-256 over the cumulative token sequence from
+This concern comes from an ambiguity in our wording, not the implementation. We agree that
+Sec. III-B can be read as hashing only block-local tokens, which would give different prefixes the
+same BlockID. We do not do this. A BlockID is a SHA-256 over the cumulative token sequence from
 position 0 through the block boundary. The full preceding context is therefore part of the hash
 input. This is the standard prefix-inclusive scheme, used by vLLM and by CloudMatrix384, which also
 augments its block hash with a prefix hash. Two blocks with the same local
@@ -72,14 +72,7 @@ in §G.
 
 ## D. Dedup Map and the Algorithm 1 notation (R2, R3)
 
-The reviewers correctly note that a one-bit existence map cannot indicate whether a block is shared.
-The implementation does not use it for that. Two distinct structures exist. The Dedup Map is an
-existence bit per BlockID. It only skips redundant allocation on a hit. The Semantic Prefix Registry
-is an explicit set of prefix-flagged BlockIDs, replicated across nodes. It alone decides eviction
-protection. The is_shared(victim) term in Algorithm 1 is a pseudocode simplification. It combined the
-two structures. The condition that applies is membership in the Semantic Prefix Registry. We will
-correct the notation. The design already separates an existence bit for deduplication from a prefix
-set for protection. This is what keeps the metadata at about 1 byte per block.
+We agree that a one-bit existence map cannot indicate whether a block is shared. We do not use it for that. Two distinct structures exist. Dedup Map is an existence bit per BlockID. It only skips redundant allocation on a hit. Semantic Prefix Registry is an explicit set of prefix-flagged BlockIDs, replicated across nodes. It alone decides eviction protection. The is_shared(victim) term in Algorithm 1 is a pseudocode simplification. It combined the two structures. The condition that applies is membership in the Semantic Prefix Registry. We will correct the notation. The design already separates an existence bit for deduplication from a prefix set for protection. This is what keeps the metadata at about 1 byte per block.
 
 ## E. Metadata semantics, hot blocks, and consistency (R2, R3)
 
@@ -160,20 +153,5 @@ set for protection. This is what keeps the metadata at about 1 byte per block.
 
 ## H. Scale and statistical reporting (R4)
 
-- **Evaluated scale and the abstract (R4).** The abstract phrase about thousands of GPUs describes the
-  target problem scale of production clusters. It is not the evaluated configuration. The evaluation
-  runs on 256 GPUs, a real allocation on a top-20 system. We will reword the abstract to make this
-  clear. On MPI scalability, the cost is bounded by design. Each update is a 116-byte delta. Deltas
-  are batched into one MPI_Allgatherv every 100 ms, off the critical path. The replica is about
-  1.16 GB for 10M blocks. The synchronized volume grows with the number of updated blocks per
-  interval. The collective is small and off the data path. So it is not the bottleneck at this scale.
-- **Statistical reporting and Fig. 7 (R4).** The 128-request workload is specific to the strong-scaling
-  experiment in Sec. IV-B. It is not the basis for the tail-latency figure. The Fig. 7 runs issue 300
-  to 500 read operations per rank. The reported percentile aggregates the per-rank latencies across
-  all ranks. That is up to roughly 19,000 samples at 64 nodes, not 128. We agree that the submission
-  did not report variance, confidence intervals, or per-experiment sample sizes. We will add these,
-  along with repeated trials and the exact sample count behind each figure. The conclusions do not
-  depend on percentile precision. The reported gaps are one to two orders of magnitude. For example,
-  retrieval latency is 16.9 times lower, and P99.9 is 469 times lower than HDF5 at 64 nodes. This is
-  far beyond any plausible run-to-run variance. So the qualitative result holds. CASCADE removes the
-  metadata and serialization bottlenecks.
+- **Evaluated scale and the abstract (R4).** The phrase about thousands of GPUs describes the target problem scale, not the evaluated configuration. The evaluation runs on 256 GPUs on a top-20 system, and we will reword the abstract to make this clear. The MPI cost is bounded by design. Each update is a 116-byte delta, batched into one MPI_Allgatherv every 100 ms off the critical path, with a replica of about 1.16 GB for 10M blocks. The synchronized volume grows with the number of updated blocks per interval, not the node count, so the collective is not the bottleneck at this scale. 
+- **Statistical reporting and Fig. 7 (R4).** The 128-request workload is specific to the strong-scaling experiment in Sec. IV-B, not the tail-latency figure. The Fig. 7 runs issue 300 to 500 reads per rank, and the reported percentile aggregates these across all ranks, up to roughly 19,000 samples at 64 nodes, not 128. We agree that the submission did not report variance or per-experiment sample sizes, and we will add them. The conclusions do not depend on percentile precision. The gaps are one to two orders of magnitude, for example 16.9 times lower retrieval latency and a 469 times lower P99.9 than HDF5 at 64 nodes, far beyond any run-to-run variance. So the qualitative result holds. CASCADE removes the metadata and serialization bottlenecks.
