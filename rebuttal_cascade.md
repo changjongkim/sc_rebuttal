@@ -16,14 +16,14 @@ global scheduler (Conductor) and metadata layer run as long-lived coordination s
 the persistent HTTP and etcd services noted in our Sec. IV-A. IMPRESS assumes node-local prefix
 storage.
 
-These requirements do not fit HPC operation. Leadership-class systems are batch-scheduled, so a
-persistent, cross-job coordination service cannot run on them, even where node-local NVMe exists such
+These requirements do not fit an HPC system. Leadership-scale HPC systems are batch-scheduled, so a
+persistent, cross-job coordination service cannot run on them, even where node-local NVMe exists, such
 as on Frontier or El Capitan. Such storage is job-scoped, not a persistent cache pool. CASCADE targets
-diskless, daemon-free operation by design. Diskless compute over a shared parallel file system is a
-common and challenging HPC model. It is also the hardest case for KV caching, since there is no local
+diskless, daemon-free operation by design. Diskless computing over a shared parallel file system is a
+common and challenging HPC system. It is also the hardest case for KV caching, since there is no local
 storage and data spills to the parallel file system. Solving that case is the contribution.
 
-CASCADE needs neither a daemon nor local disk. It coordinates through MPI collectives and uses the
+CASCADE needs neither a daemon nor a local disk. It coordinates through MPI collectives and uses the
 parallel file system as the backing store. Where node-local NVMe is present, CASCADE maps it to the
 lowest tier through POSIX, so the design extends to those systems as well. HDF5 and PDC are the
 representative storage baselines that run under these constraints, alongside LMCache (Disk) and
