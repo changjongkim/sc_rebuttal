@@ -1,11 +1,5 @@
 # SC26 CASCADE — Rebuttal Draft v4
 
-> Rebuttal-first framing. Correct factual errors and defend the design.
-> Style: short paper-style sentences, paper vocabulary, no semicolons, no connecting dashes, no
-> double quotes. Pre-trim length.
-
----
-
 We thank the reviewers for the careful reading. We address each concern below.
 
 ## A. Baselines and the diskless-HPC gap (R2, R3, R4)
