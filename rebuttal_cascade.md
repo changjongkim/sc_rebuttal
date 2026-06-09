@@ -1,4 +1,4 @@
-# SC26 CASCADE — Rebuttal Draft v4
+# SC26 CASCADE - Rebuttal Draft v4
 
 We thank the reviewers for the careful reading. We address each concern below.
 
