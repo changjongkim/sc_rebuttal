@@ -23,7 +23,7 @@ lowest tier through POSIX, so the design extends to those systems as well. HDF5 
 representative storage baselines that run under these constraints, alongside LMCache (Disk) and
 LMCache (Redis) as KV baselines. We will make this scoping explicit in the paper.
 
-## B. Novelty relative to the named prior works (R4)
+## B. Novelty relative to the prior works (R4)
 
 The contribution is not any single row of Table I. It is their unified coordination, which no named
 system provides in this environment. Each named work lacks a capability that CASCADE requires.
@@ -45,7 +45,7 @@ semantic-aware eviction. It does so on a diskless, daemon-free, batch-scheduled 
 Relaxed-consistency MPI metadata keeps the data path free of blocking RPCs. The integration is the
 novelty. We will add the cited works and clarify this distinction.
 
-## C. BlockID correctness: a factual correction (R2, R4)
+## C. BlockID correctness (R2, R4)
 
 This concern comes from an ambiguity in our wording, not the implementation. We agree that
 Sec. III-B can be read as hashing only block-local tokens, which would give different prefixes the
