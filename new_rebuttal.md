@@ -31,20 +31,11 @@ in-memory replication, which would eliminate the 93 to 94 percent footprint redu
 
 ## E. Workloads, tiering, and hardware generality (R1, R3, R4)
 
-**Single-turn workloads.** Prefix sharing is the dominant production pattern and our primary target,
-and we still evaluate the non-shared case. OpenOrca and CNN/DailyMail are independent queries treated
-as disposable blocks, and the end-to-end hit rate is 58 to 61 percent. With no sharing, deduplication
-is a no-op and tiering still extends capacity beyond HBM. DeepCAM extends the design to a
-non-redundant scientific domain via the Streaming path.
+**Single-turn workloads.** Prefix sharing is the dominant production pattern and our target, and we still evaluate the non-shared case. OpenOrca and CNN/DailyMail are independent queries treated as disposable blocks, and the end-to-end hit rate is 58 to 61 percent. With no sharing, deduplication is a no-op and tiering still extends capacity beyond HBM. DeepCAM extends to a non-redundant scientific domain via the Streaming path. 
 
-**Tier count.** A three-level GPU, DRAM, and storage hierarchy is a tiered memory hierarchy, and the
-term does not require an arbitrary tier count. Each storage tier uses the same eviction, write, and
-promotion logic, so node-local NVMe is one more POSIX tier, a configuration parameter, not a redesign.
-The diskless testbed is the hardest case, and a system with NVMe is a strict superset.
+**Tier count.** A three-level GPU, DRAM, and storage hierarchy is a tiered memory hierarchy, and the term does not require an arbitrary tier count. Each storage tier uses the same eviction, write, and promotion logic, so node-local NVMe is one more POSIX tier, a configuration parameter, not a redesign. The diskless testbed is the hardest case, and a system with NVMe is a strict superset. 
 
-**Skew.** Hot blocks spread across requesters after the first fetch, and removing residual skew is
-future work, through a level of indirection like indirect inodes that maps a hot BlockID to several
-replicas.
+**Skew.** CASCADE does not place blocks by load, so a hot block draws concurrent first-fetches on its owner. Demand spreads once each requester holds a local copy, and removing the residual skew is future work, through a level of indirection like indirect inodes that maps a hot BlockID to several replicas.
 
 ## F. Metrics and scale (R1, R2, R4)
 
