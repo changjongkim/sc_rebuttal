@@ -12,15 +12,9 @@ The novelty is not the set of mechanisms but the coordination that binds them. C
 
 ## C. Correctness and notation (R2, R4)
 
-**BlockID.** A BlockID is a SHA-256 over the cumulative token sequence from position 0 through the
-block boundary, so the full preceding context is in the hash input, as in vLLM and CloudMatrix384.
-Different prefixes give different BlockIDs. The Sec. III-B wording reads as
-block-local and we will correct it.
-
-**Dedup Map.** A one-bit map cannot express sharedness, and we do not use it for that. The Dedup Map
-only skips redundant allocation on a hit, while the Semantic Prefix Registry, a replicated set of
-prefix-flagged BlockIDs, alone decides eviction protection. The is_shared term in Algorithm 1
-conflated the two, and we will correct the notation. INT8 quantization follows cited prior work and is optional, with FP16 supported.
+**BlockID.** A BlockID is a SHA-256 over the cumulative token sequence from position 0 through the block boundary, so the full preceding context is in the hash input, as in vLLM and CloudMatrix384. Different prefixes give different BlockIDs. The Sec. III-B wording reads as block-local and we will correct it. The trace-driven sections use synthetic blocks to isolate the storage path, and the end-to-end track (Sec. IV-H) runs real model KV with this hashing, so the correctness claim rests on the latter. 
+**Dedup Map.** A one-bit map cannot express sharedness, and we do not use it for that. The Dedup Map only skips redundant allocation on a hit, while the Semantic Prefix Registry, a replicated set of prefix-flagged BlockIDs, alone decides eviction protection. The is_shared term in Algorithm 1 conflated the two, and we will correct the notation. 
+**INT8.** INT8 quantization follows cited prior work that reports preserved accuracy, and it is optional since the same path supports FP16. We will add a direct model-quality measurement in revision.
 
 ## D. Metadata, consistency, and fault tolerance (R2, R3)
 
