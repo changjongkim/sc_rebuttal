@@ -25,7 +25,7 @@ LMCache (Redis) as KV baselines. We will make this scoping explicit in the paper
 ## B. Novelty relative to the prior works (R4)
 
 The contribution is not any single row of Table I. It is their unified coordination, which no named
-system provides in this environment. Each named work lacks a capability that CASCADE requires.
+system provides in this environment. Each prior work lacks a capability that CASCADE requires.
 
 - vLLM prefix caching keeps content-addressed prefixes in one node's GPU HBM. It has no cross-node
   sharing, no DRAM or PFS tiering, and no global deduplication.
