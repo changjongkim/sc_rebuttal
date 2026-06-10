@@ -20,14 +20,9 @@ The novelty is not the set of mechanisms but the coordination that binds them. C
 
 ## D. Metadata, consistency, and fault tolerance (R2, R3)
 
-**Metadata.** The Global Shard Index stores one location per BlockID, and a remote fetch makes a working copy that adds no index entry to count or invalidate. The
-relaxed-consistency window is safe by construction, since stale metadata is a cache miss that triggers
-recomputation, never a wrong read.
+**Metadata.** The Global Shard Index stores one location per BlockID, and a remote fetch makes a working copy that adds no index entry to count or invalidate. The relaxed-consistency window is safe by construction, since stale metadata is a cache miss that triggers recomputation, never a wrong read. 
 
-**Fault tolerance.** For a cache, node failure is a non-event. A lost block is a cache miss,
-recomputed or read from Lustre, so only cached state is lost, not data. KV cache needs no durability, which is why we cache in memory. Where durability is wanted, CASCADE can
-write blocks straight to Lustre, a configuration option, not a redesign. We add no dedicated
-in-memory replication, which would eliminate the 93 to 94 percent footprint reduction (Fig. 12).
+**Fault tolerance.** For a cache, node failure is a non-event. A lost block is a cache miss, recomputed or read from Lustre, so only cached state is lost, not data. KV cache needs no durability, which is why we cache in the memory tiers. Where durability is wanted, CASCADE can write blocks straight to Lustre, a configuration option, not a redesign. We add no dedicated in-memory replication, which would eliminate the 93 to 94 percent footprint reduction (Fig. 12).
 
 ## E. Workloads, tiering, and hardware generality (R1, R3, R4)
 
