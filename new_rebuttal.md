@@ -1,21 +1,9 @@
 
 We thank the reviewers and address each concern below.
 
-## A. The parallel file system layer and the baselines (R2, R3, R4)
+## A. The parallel file system layer and the baselines (R2, R3, R4) 
 
-When the KV cache spills out of GPU HBM, how far down it spills is the point. Existing KV cache systems
-stop at node-local storage, a fast local layer. CASCADE goes one level deeper, to the parallel file
-system, which is shared and persistent across the cluster. In multi-tenant and expert serving, shared
-data grows in value, node-local storage is capacity-limited and not shared, and
-shareability requires the data to persist in one shared place. The parallel file system is that shared
-data-lake, and serving KV from it at memory speed is the hardest part of the work.
-
-The baselines follow from this layer. PDC and HDF5 are the HPC parallel-I/O frameworks that manage
-data at the parallel file system layer CASCADE targets, so they are the meaningful comparison, with
-LMCache (Disk) and LMCache (Redis) as KV-system baselines. Mooncake and IMPRESS never reach this
-layer, operating only at node-local storage. They also cannot run here, since Mooncake needs a
-persistent Conductor with etcd that batch-scheduled HPC cannot host, and IMPRESS is single-node on a
-local SSD that a diskless node lacks.
+When the KV cache spills out of GPU HBM, what matters is how far down it spills. Existing KV cache systems stop at node-local storage, the SSD that Mooncake and IMPRESS rely on. That tier is bounded by one node's capacity and is not shared across nodes, even when serving is disaggregated. CASCADE goes one level deeper, to the parallel file system, a shared and high-capacity pool, the data-lake that the faster tiers draw from. In expert and multi-tenant serving, where shared data grows in value and the working set outgrows any node, this removes both limits. Serving KV from it at memory speed is the hardest part of the work. The baselines follow from this layer. PDC and HDF5 are the parallel-I/O middleware that HPC applications already use to manage data on a parallel file system, so they are what CASCADE must beat at the layer it targets. We also compare LMCache (Disk) and LMCache (Redis) as KV-system baselines. Mooncake and IMPRESS never reach this layer. We tried to add Mooncake by launching its Conductor as a separate batch job, but a persistent coordinator is non-executable under batch scheduling. IMPRESS is single-node, and its importance-informed loading optimizes prefix reuse within one node, with no cross-node sharing or global deduplication.
 
 ## B. Novelty (R4)
 
