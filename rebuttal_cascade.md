@@ -97,21 +97,8 @@ We agree that a one-bit existence map cannot indicate whether a block is shared.
 ## F. Fault tolerance and hardware generality (R1, R3, R4)
 
 - **Fault tolerance (R3).** CASCADE adds no dedicated in-memory replication for high availability, by design. The shadow copies and working copies it holds are caches for access, not durability replicas. When a node fails, its cached blocks are recomputed or read from the durable Tier 3 (Lustre). Cached state is lost, but the underlying data is not. Dedicated replication would eliminate the 93 to 94 percent footprint reduction (Fig. 12) that makes terabyte-scale caching feasible. So durability is handled by Lustre. HA replication of the hot tiers is a possible extension.
-- **Tiering is not falsified (R4).** The tiered-hierarchy claim holds. The lowest tier is a POSIX backend
-  addressed by a path. It maps directly to node-local NVMe on Frontier or to a parallel file system,
-  with no code change. The diskless testbed is the hardest case. We chose it deliberately because it
-  has no local storage to fall back on. The prototype implements three tiers. We will frame the
-  contribution as a logical HBM to DRAM to POSIX hierarchy that extends across storage substrates.
-- **Workloads without prefix sharing (R1, R3).** Prefix sharing is the dominant pattern in production LLM
-  serving, through shared system prompts, RAG, and multi-turn dialogue. It is our primary target by
-  design. The non-shared case is still evaluated. OpenOrca and CNN/DailyMail contribute independent
-  queries that we treat as disposable, non-shared blocks alongside ShareGPT (Sec. IV-A). The
-  over-subscription study floods 90 percent of the working set with disposable suffixes (Sec. IV-G).
-  The end-to-end hit rate is 58 to 61 percent (Sec. IV-H), so many blocks are never reused. With no
-  sharing, deduplication finds no matches and adds only the hashing cost. The tiered hierarchy still
-  extends capacity beyond HBM, which is what helps a single-user long-context request that exceeds one
-  node. DeepCAM is a separate point. It shows the design extends beyond LLM serving to a
-  non-redundant scientific domain, through the Streaming path (Sec. IV-I).
+- **Tiering (R4).** The concern is that the prototype fixes three tiers and does not demonstrate more, so we separate the claim from the prototype. A tiered memory hierarchy means cascading data across latency and capacity tiers with uniform promotion and eviction, which we demonstrate over GPU HBM, DRAM, and storage. Each tier uses the same eviction, aggregated write, and promotion logic, regardless of the medium. Node-local NVMe is therefore one more POSIX tier between DRAM and the parallel file system, not a redesign. The diskless testbed is also the hardest case, since it has no fast local tier to hide latency, and a system with NVMe such as Frontier is a strict superset where NVMe slots in above the file system. The prototype instantiates three tiers, but extending the chain to four reuses the same logic and is a configuration parameter, not a research limitation.
+- **Workloads without prefix sharing (R1, R3).** Prefix sharing is the dominant pattern in production LLM serving, through shared system prompts, RAG, and multi-turn dialogue. It is our primary target by design. The non-shared case is still evaluated. OpenOrca and CNN/DailyMail contribute independent queries that we treat as disposable, non-shared blocks alongside ShareGPT (Sec. IV-A). The over-subscription study floods 90 percent of the working set with disposable suffixes (Sec. IV-G). The end-to-end hit rate is 58 to 61 percent (Sec. IV-H), so many blocks are never reused. With no sharing, deduplication finds no matches and adds only the hashing cost. The tiered hierarchy still extends capacity beyond HBM, which is what helps a single-user long-context request that exceeds one node. DeepCAM is a separate point. It shows the design extends beyond LLM serving, to a non-redundant domain, through the Streaming path (Sec. IV-I).
 
 ## G. Metrics, framework isolation, and compression (R1, R2, R4)
 
