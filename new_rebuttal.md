@@ -7,19 +7,7 @@ When the KV cache spills out of GPU HBM, what matters is how far down it spills.
 
 ## B. Novelty (R4)
 
-The novelty is a decentralized, daemon-free, content-addressed KV cache that reaches the parallel file
-system data-lake on commodity HPC. The central choice is decentralized coordination. Disaggregated
-expert-LLM serving separates prefill, decode, and experts, so the cache layer should match, with no
-single coordinator. CASCADE uses relaxed-consistency MPI metadata, where every node holds a local
-replica and the data path has no blocking RPC and no central service. Mooncake instead unifies the
-system under one coordinator, the Conductor with etcd, which is wrong for HPC and a bottleneck for
-disaggregated serving.
-
-Each prior work also lacks a capability CASCADE requires. vLLM prefix caching is single-node GPU HBM
-only. CloudMatrix384 is content-addressed but on a proprietary fabric with persistent services and an
-SSD tier. CachedAttention is single-node hierarchical caching. None coordinate a tiered HBM to DRAM to
-parallel file system hierarchy with zero-copy RDMA, global deduplication, and semantic eviction,
-decentralized, on diskless HPC. The integration is the novelty.
+The novelty is not the set of mechanisms but the coordination that binds them. CASCADE is the first content-addressed, deduplicated, tiered KV cache that needs no central coordinator, which is what lets it run on diskless, batch-scheduled HPC. The enabling insight is that a KV cache is reconstructible. A lost or stale metadata entry is only a cache miss that triggers recomputation, never a wrong answer. CASCADE can therefore relax the strong consistency that general storage must enforce, and a relaxed metadata plane needs no central service. Every node keeps a local replica synchronized by off-path MPI collectives, and the data path has no blocking RPC. This is why content-addressed deduplication and tiering can run with no daemon, where a persistent control plane cannot run at all. Mooncake does not relax this. It routes the whole system through one coordinator, the Conductor with etcd, which is the wrong abstraction twice over. It cannot run on batch HPC, and it recouples a disaggregated serving system that has already split prefill, decode, and experts into independent engines. A single coordinator forces those engines onto one control plane, one bottleneck, and one point of failure. CASCADE instead lets each node act as a peer, which matches how disaggregated serving is deployed. Each prior work lacks the capability CASCADE requires. vLLM prefix caching is single-node GPU HBM only. CloudMatrix384 is content-addressed but on a proprietary fabric with persistent services and an SSD tier. CachedAttention is single-node hierarchical caching. None coordinates a tiered HBM to DRAM to parallel file system hierarchy with zero-copy RDMA, global deduplication, and semantic eviction without a central coordinator, on diskless HPC. That combination cuts the cache footprint by 93 to 94 percent and keeps retrieval latency flat where the storage baselines degrade. 
 
 ## C. Correctness and notation (R2, R4)
 
