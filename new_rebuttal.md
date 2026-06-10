@@ -39,21 +39,9 @@ in-memory replication, which would eliminate the 93 to 94 percent footprint redu
 
 ## F. Metrics and scale (R1, R2, R4)
 
-**TTFT.** The two metrics are distinct. The trace metric is defined as retrieval latency in Sec. IV-A,
-and the end-to-end TTFT is reported separately in Sec. IV-H. We will rename the trace metric to Block
-Retrieval Latency.
+**Framework (R2, R4).** R4 is right that the absolute CASCADE-versus-vLLM TTFT in Fig. 13a mixes caching and runtime, and we do not rest the contribution on it. The gain is isolated in Fig. 13b within one PyTorch run, where retrieval replaces 1s of prefill with a 21 to 27 ms RDMA read, and the scaling difference is structural, since vLLM-APC fills HBM and falls back to full prefill while CASCADE spills to DRAM and Lustre. We will reframe Sec. IV-H and rename the trace metric to Block Retrieval Latency, distinct from end-to-end TTFT.
 
-**vLLM and PyTorch.** R4 is right that the absolute CASCADE-versus-vLLM TTFT in Fig. 13a mixes caching
-and runtime, and we do not rest the contribution on it. The caching gain is isolated in Fig. 13b,
-within one PyTorch run, where retrieval replaces 1 s of prefill with a 21 to 27 ms RDMA read, with no
-framework variable. The scaling difference is structural, since vLLM-APC fills HBM and falls back to
-full prefill while CASCADE spills to DRAM and Lustre. We will reframe Sec. IV-H accordingly.
+**Scale (R1, R4).** 256 GPUs is the maximum allocation we could obtain, in a real run. Scaling is not gated by the metadata, which is off the data path, since a block resolves in a 2.0 microsecond local lookup and a one-sided RDMA read rather than per-block metadata-server calls that grow with node count. We will reword the abstract so the evaluated scale is unambiguous.
 
-**Scale.** CASCADE resolves a block in a 2.0 microsecond local lookup and reads it by one-sided RDMA,
-while the baselines pay per-block metadata-server operations that grow with node count. 256 GPUs is the maximum allocation we could obtain, a real run at that
-scale, and the metadata is off the data path so it does not gate scaling. We will reword the abstract
-so the evaluated 256-GPU scale is unambiguous.
+**Statistics (R4).** We agree variance was not reported and will add it with repeated trials. The tail-latency figure is not 128 samples but 300 to 500 reads per rank, roughly 19,000 at 64 nodes, and the gaps are one to two orders of magnitude, far beyond variance.
 
-**Statistics.** We agree variance was not reported and will add it with repeated trials. The
-128-request workload is strong-scaling only, while the tail-latency figure aggregates 300 to 500 reads
-per rank to roughly 19,000 samples at 64 nodes. The gaps are one to two orders of magnitude, far beyond variance.
