@@ -29,7 +29,7 @@ CASCADE does not place blocks by load, so a hot block draws concurrent first-fet
 
 **INT8.** INT8 is optional, with FP16 supported, and we will report its quality impact in revision.
 
-**Framework.** The trace-driven metric we labeled TTFT measures block retrieval, and we will rename it to Block Retrieval Latency. The standard end-to-end TTFT is the one in Fig. 13. R4 is right that the absolute CASCADE vs. vLLM comparison there mixes caching and runtime, which we do not rest on. The gain is isolated in Fig. 13b, one PyTorch run where retrieval replaces 1 s of prefill with a 21 to 27 ms RDMA read. The tail-latency figure uses 300 to 500 reads per rank, not 128, with gaps far beyond variance.
+**Framework.** The trace-driven metric we labeled TTFT measures block retrieval, and we will rename it to Block Retrieval Latency. The standard end-to-end TTFT is the one in Fig. 13. R4 is right that the absolute CASCADE vs. vLLM comparison there mixes caching and runtime, on which we do not rely. The gain is isolated in Fig. 13b, one PyTorch run where retrieval replaces 1 s of prefill with a 21 to 27 ms RDMA read. The tail-latency figure uses 300 to 500 reads per rank, not 128, with gaps far beyond variance.
 
 ## F. Fault tolerance and tiering (R3, R4)
 
