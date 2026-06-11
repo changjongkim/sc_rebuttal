@@ -20,6 +20,7 @@ CASCADE does not place blocks by load, so a hot block draws concurrent first-fet
 ## E. Design clarifications (R2, R3, R4)
 
 **BlockID.** A BlockID is a SHA-256 over the cumulative token sequence from position 0, so the preceding context is in the hash and different prefixes give different BlockIDs, as in vLLM. The Sec. III-B wording reads as block-local and we will correct it. The end-to-end evaluation (Sec. IV-H) runs this on real model KV, not synthetic blocks.
+
 **Dedup Map and metadata.** The Dedup Map is a one-bit existence map for skipping redundant allocation, while a replicated Semantic Prefix Registry decides eviction protection. Algorithm 1's is_shared conflated the two, which we will correct. The Global Shard Index stores one location per BlockID, and a remote fetch adds no entry to count or invalidate.
 
 **INT8.** INT8 is optional, with FP16 supported, and its quality impact comes in revision.
