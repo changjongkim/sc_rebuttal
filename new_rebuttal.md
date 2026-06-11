@@ -25,11 +25,11 @@ CASCADE does not place blocks by load, so a hot block draws concurrent first-fet
 
 ## E. Design clarifications (R2, R3, R4) 
 
-**BlockID.** A BlockID is a SHA-256 over the cumulative token sequence from position 0 through the block boundary, so the preceding context is in the hash, and different prefixes give different BlockIDs, as in vLLM. The Sec. III-B wording reads as block-local and we will correct it. Correctness rests on the end-to-end track (Sec. IV-H), which uses real model KV, not the synthetic trace-driven blocks. 
+**BlockID.** A BlockID is a SHA-256 over the cumulative token sequence from position 0 through the block boundary, so the preceding context is in the hash and different prefixes give different BlockIDs, as in vLLM. The Sec. III-B wording reads as block-local and we will correct it. Correctness rests on the end-to-end track (Sec. IV-H), which uses real model KV, not the synthetic trace-driven blocks. 
 
-**Dedup Map and metadata.** The Dedup Map is a one-bit existence map that only skips redundant allocation, while a separate replicated Semantic Prefix Registry decides eviction protection. Algorithm 1's is_shared conflated the two, and we will correct the notation. The Global Shard Index stores one location per BlockID, and a remote fetch makes a working copy with no new index entry, so there is nothing to count or invalidate. 
+**Dedup Map and metadata.** The Dedup Map is a one-bit existence map that only skips redundant allocation, while a separate replicated Semantic Prefix Registry decides eviction protection. Algorithm 1's is_shared conflated the two, which we will correct. The Global Shard Index stores one location per BlockID, and a remote fetch adds no index entry, so there is nothing to count or invalidate.
 
-**INT8.** INT8 follows cited prior work that reports preserved accuracy and is optional, since the same path supports FP16. We will add a direct model-quality measurement in the revision.
+**INT8.** INT8 is optional, since the same path supports FP16, and we will report its model-quality impact in revision.
 
 ## F. Fault tolerance and hardware generality (R3, R4) 
 
