@@ -23,30 +23,16 @@ CASCADE helps two kinds of workloads through two independent mechanisms. Dedupli
 
 CASCADE does not place blocks by load, so a hot block draws concurrent first-fetches on its owning node. Demand then spreads, since each requester serves from its local copy after the first fetch, but the initial burst is real and we do not yet smooth it. Removing this residual skew is future work, through indirect hashing, in the spirit of indirect inodes, that resolves a hot BlockID to one of several replicas.
 
-## C. Correctness and notation (R2, R4)
+## E. Design clarifications (R2, R3, R4) 
 
-**BlockID.** A BlockID is a SHA-256 over the cumulative token sequence from position 0 through the block boundary, so the full preceding context is in the hash input, as in vLLM and CloudMatrix384. Different prefixes give different BlockIDs. The Sec. III-B wording reads as block-local and we will correct it. The trace-driven sections use synthetic blocks to isolate the storage path, and the end-to-end track (Sec. IV-H) runs real model KV with this hashing, so the correctness claim rests on the latter. 
+**BlockID.** A BlockID is a SHA-256 over the cumulative token sequence from position 0 through the block boundary, so the preceding context is in the hash, and different prefixes give different BlockIDs, as in vLLM. The Sec. III-B wording reads as block-local and we will correct it. Correctness rests on the end-to-end track (Sec. IV-H), which uses real model KV, not the synthetic trace-driven blocks. 
 
-**Dedup Map.** A one-bit map cannot express sharedness, and we do not use it for that. The Dedup Map only skips redundant allocation on a hit, while the Semantic Prefix Registry, a replicated set of prefix-flagged BlockIDs, alone decides eviction protection. The is_shared term in Algorithm 1 conflated the two, and we will correct the notation. 
+**Dedup Map and metadata.** The Dedup Map is a one-bit existence map that only skips redundant allocation, while a separate replicated Semantic Prefix Registry decides eviction protection. Algorithm 1's is_shared conflated the two, and we will correct the notation. The Global Shard Index stores one location per BlockID, and a remote fetch makes a working copy with no new index entry, so there is nothing to count or invalidate. 
 
-**INT8.** INT8 compression follows cited prior work that reports preserved accuracy, and it is optional since the same path supports FP16. We will add a direct model-quality measurement in revision process.
+**INT8.** INT8 follows cited prior work that reports preserved accuracy and is optional, since the same path supports FP16. We will add a direct model-quality measurement in the revision.
 
-## D. Metadata, consistency, and fault tolerance (R2, R3)
+## F. Fault tolerance and hardware generality (R3, R4) 
 
-**Metadata.** The Global Shard Index stores one location per BlockID, and a remote fetch makes a working copy that adds no index entry to count or invalidate. The relaxed-consistency window is safe by construction, since stale metadata is a cache miss that triggers recomputation, never a wrong read. 
+**Fault tolerance.** For a cache, node failure is a non-event. A lost block is a cache miss, recomputed or read from Lustre, so only cached state is lost. KV cache needs no durability, and where it is wanted CASCADE can write blocks straight to Lustre, a configuration option. We add no in-memory replication, which would undo the 93 to 94 percent footprint reduction. 
 
-**Fault tolerance.** For a cache, node failure is a non-event. A lost block is a cache miss, recomputed or read from Lustre, so only cached state is lost, not data. KV cache needs no durability, which is why we cache in the memory tiers. Where durability is wanted, CASCADE can write blocks straight to Lustre, a configuration option, not a redesign. We add no dedicated in-memory replication, which would eliminate the 93 to 94 percent footprint reduction (Fig. 12).
-
-## E. Workloads, tiering, and hardware generality (R1, R3, R4)
-
-**Tier count.** A three-level GPU, DRAM, and storage hierarchy is a tiered memory hierarchy, and the term does not require an arbitrary tier count. Each storage tier uses the same eviction, write, and promotion logic, so node-local NVMe is one more POSIX tier, a configuration parameter, not a redesign. The diskless testbed is the hardest case, and a system with NVMe is a strict superset. 
-
-**Skew.** CASCADE does not place blocks by load, so a hot block draws concurrent first-fetches on its owner. Demand spreads once each requester holds a local copy, and removing the residual skew is future work, through a level of indirection like indirect inodes that maps a hot BlockID to several replicas.
-
-## F. Metrics and scale (R1, R2, R4)
-
-**Framework (R2, R4).** R4 is right that the absolute CASCADE-versus-vLLM TTFT in Fig. 13a mixes caching and runtime, and we do not rest the contribution on it. The gain is isolated in Fig. 13b within one PyTorch run, where retrieval replaces 1 s of prefill with a 21 to 27 ms RDMA read, and the scaling difference is structural, since vLLM-APC fills HBM and falls back to full prefill while CASCADE spills to DRAM and Lustre. We will reframe Sec. IV-H and rename the trace metric to Block Retrieval Latency, distinct from end-to-end TTFT. 
-
-**Scale (R1, R4).** 256 GPUs is the maximum allocation we could obtain, a real run. Scaling is not gated by the metadata, which is off the data path. We will reword the abstract so the evaluated scale is unambiguous. 
-
-**Statistics (R4).** We agree variance was not reported and will add it with repeated trials. The tail-latency figure is not 128 samples but 300 to 500 reads per rank, roughly 19,000 at 64 nodes, and the gaps are one to two orders of magnitude, far beyond variance.
+**Tiering.** A three-level GPU, DRAM, and storage hierarchy is a tiered memory hierarchy, and the term does not require an arbitrary tier count. Each storage tier uses the same eviction, write, and promotion logic, so node-local NVMe is one more POSIX tier, a configuration parameter, not a redesign. A system with NVMe is a strict superset of the diskless case we evaluate.
