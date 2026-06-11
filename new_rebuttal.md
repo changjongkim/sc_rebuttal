@@ -31,6 +31,9 @@ CASCADE does not place blocks by load, so a hot block draws concurrent first-fet
 
 **INT8.** INT8 is optional, since the same path supports FP16, and we will report its model-quality impact in revision.
 
+**Framework.** 
+The trace-driven metric we labeled TTFT actually measures block retrieval, and we will rename it to Block Retrieval Latency. The standard end-to-end TTFT is the one in Fig. 13. R4 is right that the absolute CASCADE vs. vLLM comparison there mixes caching and runtime, so we do not rest the contribution on it. The gain is isolated in Fig. 13b, within one PyTorch run, where retrieval replaces 1 s of prefill with a 21 to 27 ms RDMA read. The tail-latency figure aggregates 300 to 500 reads per rank, not 128, and the gaps are one to two orders of magnitude, far beyond variance.
+
 ## F. Fault tolerance and hardware generality (R3, R4) 
 
 **Fault tolerance.** For a cache, node failure is a non-event. A lost block is a cache miss, recomputed or read from Lustre, so only cached state is lost. KV cache needs no durability, and where it is wanted CASCADE can write blocks straight to Lustre, a configuration option. We add no in-memory replication, which would undo the 93 to 94 percent footprint reduction. 
