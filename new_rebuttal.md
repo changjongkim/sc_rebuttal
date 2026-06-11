@@ -35,4 +35,4 @@ CASCADE does not place blocks by load, so a hot block draws concurrent first-fet
 
 **Fault tolerance.** For a cache, node failure is a non-event. A lost block is a cache miss, recomputed or read from Lustre, so only cached state is lost. KV cache needs no durability, and where it is wanted CASCADE can write blocks straight to Lustre, a configuration option. We add no in-memory replication, which would undo the 93 to 94 percent footprint reduction. 
 
-**Tiering.** A three-level GPU, DRAM, and storage hierarchy is a tiered memory hierarchy, and the term does not require an arbitrary tier count. Each storage tier uses the same eviction, write, and promotion logic, so node-local NVMe is one more POSIX tier, a configuration parameter, not a redesign. A system with NVMe is a strict superset of the diskless case we evaluate.
+**Tiering.** A three-level GPU, DRAM, and storage hierarchy is a tiered memory hierarchy, and the term does not require an arbitrary tier count. Each storage tier uses the same eviction, write, and promotion logic, so node-local NVMe is one more POSIX tier, a configuration parameter, not a redesign.
