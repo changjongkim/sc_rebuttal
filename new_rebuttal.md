@@ -11,11 +11,13 @@ When the KV cache spills out of GPU HBM, how far down it spills dictates the arc
 
 The novelty is the daemon-free coordination that binds the mechanisms. To our knowledge, CASCADE is the first content-addressed, deduplicated, tiered KV cache that needs no central coordinator, which lets it run on batch-scheduled HPC. The insight is that a KV cache is reconstructible. A lost or stale entry is only a cache miss, never a wrong read. CASCADE can therefore relax the strong consistency that general storage must enforce, and a relaxed metadata plane needs no central service. Every node keeps a local replica synchronized by off-path MPI collectives, with no blocking RPC on the data path. This removes the coordinator that distributed KV caches otherwise need.
 Each prior work lacks a capability CASCADE requires.
+
 - Mooncake uses one-sided RDMA but routes every request through a central, persistent Conductor, which recouples disaggregated serving into one unscalable control plane and cannot run on batch-scheduled HPC.
 - vLLM prefix caching is single-node GPU HBM only.
 - CloudMatrix384 is content-addressed but on a proprietary fabric with persistent services and SSD.
-- CachedAttention is single-node hierarchical caching.
-- IMPRESS optimizes prefix reuse within a single node.
+- CachedAttention is a single-node hierarchical KV cache for multi-turn conversations, with no cross-node sharing or global deduplication.
+- IMPRESS loads important prefix KV across a single node's GPU, CPU, and local SSD, with no cross-node sharing or global deduplication.
+
 CASCADE alone coordinates a tiered HBM to DRAM to PFS hierarchy with zero-copy RDMA, global deduplication, and semantic eviction without a central coordinator, on batch-scheduled HPC. That combination cuts the cache footprint by 93 to 94 percent and keeps retrieval latency flat where the storage baselines degrade.
 
 
