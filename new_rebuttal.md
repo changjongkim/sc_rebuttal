@@ -22,7 +22,7 @@ CASCADE alone coordinates a tiered HBM to DRAM to parallel file system hierarchy
 
 ## C. Workload generality (R1, R3, R4)
 
-CASCADE helps two kinds of workloads through two independent mechanisms. Deduplication removes redundancy when prefixes are shared, and the tiered hierarchy extends capacity for any request that outgrows HBM, shared or not. Prefix sharing is the dominant production pattern, through shared system prompts, RAG, and multi-turn dialogue, not a niche. We still evaluate the non-shared case. OpenOrca and CNN/DailyMail are independent queries, the over-subscription study floods 90 percent with disposable suffixes, and the hit rate is 58 to 61 percent. When nothing is shared, the tiered hierarchy still serves a single long-context request beyond one node's HBM. DeepCAM extends this to a non-redundant scientific domain.
+CASCADE helps two kinds of workloads through two independent mechanisms. Deduplication removes redundancy when prefixes are shared, and the tiered hierarchy extends capacity for any request that outgrows HBM, shared or not. Prefix sharing is the dominant production pattern, through shared system prompts, RAG, and multi-turn dialogue, representing the primary bottleneck in modern LLM serving. We still evaluate the non-shared case. OpenOrca and CNN/DailyMail are independent queries, the over-subscription study floods 90 percent with disposable suffixes, and the hit rate is 58 to 61 percent. When nothing is shared, the tiered hierarchy still serves a single long-context request beyond one node's HBM. DeepCAM extends this to a non-redundant scientific domain.
 
 ## D. Hot-block skew (R3)
 
