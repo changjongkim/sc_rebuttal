@@ -14,7 +14,7 @@ Each prior work lacks a capability CASCADE requires.
 
 - Mooncake uses one-sided RDMA but routes every request through a central, persistent Conductor, which recouples disaggregated serving into one unscalable control plane and cannot run on batch-scheduled HPC.
 - vLLM prefix caching is single-node GPU HBM only.
-- CloudMatrix384 is content-addressed but on a proprietary fabric with persistent services and SSD.
+- CloudMatrix384 is content-addressed and deduplicated but only on a proprietary fabric, coordinated by a centralized control plane and resident per-node services.
 - CachedAttention is a single-node hierarchical KV cache for multi-turn conversations, with no cross-node sharing or global deduplication.
 - IMPRESS loads important prefix KV across a single node's GPU, CPU, and local SSD, with no cross-node sharing or global deduplication.
 
