@@ -4,7 +4,7 @@ When the KV cache spills out of GPU HBM, how far down it spills dictates the arc
 
 However, the harder constraint is the platform. A batch-scheduled HPC system grants a job a time-bounded allocation released on exit, so it cannot host a coordination service that outlives the allocation. Mooncake's Conductor is exactly that, a standing global scheduler backed by etcd, so its exclusion is structural, not a comparison we declined.
 
-The baselines follow from both. PDC and HDF5 are the standard parallel-I/O middleware HPC uses to stage data on the parallel file system, so they are the natural baseline at this layer. LMCache (Disk) and LMCache (Redis) instead run inside one allocation, and LMCache (Redis) is the centralized KV-cache baseline that CASCADE's decentralized design improves on.
+The baselines follow from both. PDC and HDF5 are the standard parallel-I/O middleware HPC uses to stage data on the parallel file system, so they are the baseline at this layer. LMCache (Disk) and LMCache (Redis) instead run inside one allocation, and LMCache (Redis) is the centralized KV-cache baseline that CASCADE's decentralized design improves on.
 
 ## B. Novelty
 
