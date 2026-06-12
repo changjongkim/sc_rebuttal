@@ -1,14 +1,14 @@
-## A. Baselines and the PFS (R2, R3, R4)
+## A. Baselines and the parallel file system
 
-When the KV cache spills out of GPU HBM, how far down it spills dictates the architectural constraints. vLLM keeps it in one node's HBM. Mooncake disaggregates it into a cluster pool of DRAM and SSD. CASCADE goes one level deeper, to the PFS, the shared data-lake that the faster tiers draw from. In expert and multi-tenant serving, shared data grows in value and the working set outgrows any node, so this shared, high-capacity store is what KV caching needs.
+When the KV cache spills out of GPU HBM, how far it spills dictates the architecture. vLLM keeps it in one node's HBM. Mooncake disaggregates it into a cluster pool of DRAM and SSD. CASCADE goes deeper, to the parallel file system the faster tiers draw from. In expert and multi-tenant serving, the working set outgrows any node, so this shared, high-capacity store is what KV caching needs.
 
-However, the harder constraint is the platform. A batch-scheduled HPC system grants a job a time-bounded allocation released on exit, so it cannot host a coordination service that outlives the allocation. Mooncake's Conductor is exactly that, a standing global scheduler backed by etcd, so its exclusion is structural, not a comparison we declined.
+However, the harder constraint is the platform. A batch-scheduled HPC system grants a time-bounded allocation released on exit, so it cannot host a coordination service that outlives it. Mooncake's Conductor is exactly that, a standing global scheduler with etcd, so its exclusion is structural, not a comparison we declined.
 
-The baselines follow from both. PDC and HDF5 are the standard parallel-I/O middleware HPC uses to stage data on the PFS, so they are the baseline at this layer. LMCache (Disk) and LMCache (Redis) instead run inside one allocation, and LMCache (Redis) is the centralized KV-cache baseline that CASCADE's decentralized design improves on.
+The baselines follow from both. PDC and HDF5 are the standard parallel-I/O middleware HPC uses on the parallel file system, the baseline at this layer. LMCache (Disk) and LMCache (Redis) instead run inside one allocation, and LMCache (Redis) is the centralized KV-cache baseline that CASCADE's decentralized design improves on.
 
-## B. Novelty (R4)
+## B. Novelty
 
-The novelty is the daemon-free coordination that binds the mechanisms. To our knowledge, CASCADE is the first content-addressed, deduplicated, tiered KV cache that needs no central coordinator, which lets it run on batch-scheduled HPC. The insight is that a KV cache is reconstructible. A lost or stale entry is only a cache miss, never a wrong read. CASCADE can therefore relax the strong consistency that general storage must enforce, and a relaxed metadata plane needs no central service. Every node keeps a local replica synchronized by off-path MPI collectives.
+The novelty is the daemon-free coordination binding the mechanisms. To our knowledge, CASCADE is the first content-addressed, deduplicated, tiered KV cache needing no central coordinator, which lets it run on batch-scheduled HPC. The insight is that a KV cache is reconstructible. A lost or stale entry is only a cache miss, never a wrong read. CASCADE can therefore relax the strong consistency general storage enforces, and a relaxed metadata plane needs no central service. Every node keeps a local replica synchronized by off-path MPI collectives.
 
 Each prior work lacks a capability CASCADE requires.
 
@@ -18,28 +18,30 @@ Each prior work lacks a capability CASCADE requires.
 - CachedAttention is a single-node hierarchical KV cache for multi-turn conversations, with no cross-node sharing or global deduplication.
 - IMPRESS loads important prefix KV across a single node's GPU, CPU, and local SSD, with no cross-node sharing or global deduplication.
 
-CASCADE alone coordinates a tiered HBM to DRAM to PFS hierarchy with zero-copy RDMA, global deduplication, and semantic eviction without a central coordinator, on batch-scheduled HPC. It cuts the cache footprint by 93 to 94 percent and keeps retrieval latency flat where the storage baselines degrade.
+CASCADE alone coordinates the HBM to DRAM to PFS hierarchy with zero-copy RDMA, global deduplication, and semantic eviction without a central coordinator, on batch-scheduled HPC. It cuts the cache footprint by 93 to 94 percent and keeps retrieval latency flat where the baselines degrade.
 
-## C. Workload generality (R1, R3, R4)
+## C. Workload generality
 
-CASCADE helps two kinds of workloads through two independent mechanisms. Deduplication removes redundancy when prefixes are shared, and the tiered hierarchy extends capacity for any request that outgrows HBM, shared or not. Prefix sharing is the dominant production pattern, through shared system prompts, RAG, and multi-turn dialogue, not a niche. While the non-shared case is not our focus, it is still evaluated in the paper. OpenOrca and CNN/DailyMail are independent queries, the over-subscription study floods 90 percent with disposable suffixes, and the hit rate is 58 to 61 percent. When nothing is shared, the tiered hierarchy still serves a single long-context request beyond one node's HBM. DeepCAM extends this to a non-redundant scientific domain.
+CASCADE helps two kinds of workloads through two independent mechanisms. Deduplication removes redundancy when prefixes are shared, and the tiered hierarchy extends capacity for any request outgrowing HBM, shared or not. Prefix sharing is the dominant production pattern in RAG and multi-turn dialogue, not a niche. While the non-shared case is not our focus, it is still evaluated in the paper. OpenOrca and CNN/DailyMail are independent queries, and the over-subscription study floods 90 percent with disposable suffixes. When nothing is shared, the tiered hierarchy still serves a single long-context request beyond one node's HBM. DeepCAM extends this to a non-redundant scientific domain.
 
-## D. Hot-block skew (R3)
+## D. Hot-block skew
 
-CASCADE does not place blocks by load, so a hot block draws concurrent first-fetches on its owning node. Demand spreads after the first fetch, when each requester serves from its local copy, but the initial burst is real and we do not yet smooth it. Removing this residual skew is future work, through indirect hashing, in the spirit of indirect inodes, that resolves a hot BlockID to one of several replicas.
+CASCADE does not place blocks by load, so a hot block draws concurrent first-fetches on its owning node. Demand spreads after the first fetch, as each serves locally, but the initial burst is real and we do not yet smooth it. Removing this residual skew is future work, through indirect hashing in the spirit of indirect inodes, resolving a hot BlockID to one of several replicas.
 
-## E. Design clarifications (R2, R3, R4)
+## E. Design clarifications
 
-**BlockID.** A BlockID is a SHA-256 over the cumulative token sequence from position 0, so different prefixes give different BlockIDs, as in vLLM. The Sec. III-B wording reads as block-local and we will correct it. The end-to-end evaluation (Sec. IV-H) uses real model KV, not synthetic blocks.
+**BlockID.** A BlockID is a SHA-256 over cumulative tokens from position 0, so different prefixes give different BlockIDs, as in vLLM. The Sec. III-B wording reads as block-local and we will correct it. The end-to-end evaluation (Sec. IV-H) uses real model KV, not synthetic blocks.
 
-**Dedup Map and metadata.** The Dedup Map is a one-bit existence map for skipping redundant allocation, while a replicated Semantic Prefix Registry decides eviction protection. Algorithm 1's is_shared conflated the two, which we will correct. The Global Shard Index stores one location per BlockID, and a remote fetch adds no entry to count or invalidate.
+**Dedup Map and metadata.** The Dedup Map is a one-bit existence map for skipping redundant allocation, while a replicated Semantic Prefix Registry decides eviction protection. Algorithm 1's is_shared conflated the two, which we will correct. The Global Shard Index stores one location per BlockID, and a remote fetch adds no entry.
 
 **INT8.** INT8 is optional, with FP16 supported, and we will report its quality impact in revision.
 
-**Framework.** The trace-driven metric we labeled TTFT measures block retrieval, and we will rename it to Block Retrieval Latency, leaving the standard end-to-end TTFT in Fig. 13. R4 is right that the absolute CASCADE vs. vLLM comparison there mixes caching and runtime, on which we do not rely. The gain is isolated in Fig. 13b, where retrieval replaces 1 s of prefill with a 21 to 27 ms RDMA read. The tail-latency figure uses 300 to 500 reads per rank, not 128, with gaps far beyond variance.
+**Framework.** The trace-driven metric labeled TTFT measures block retrieval, and we will rename it Block Retrieval Latency, leaving the standard TTFT in Fig. 13. R4 is right that the absolute CASCADE vs. vLLM comparison mixes caching and runtime, on which we do not rely. The gain is isolated in Fig. 13b, where retrieval replaces 1 s of prefill with a 21 to 27 ms read. The tail-latency figure uses 300 to 500 reads per rank, not 128, with gaps far beyond variance.
 
-## F. Fault tolerance and tiering (R3, R4)
+**Scale.** While a larger evaluation would be preferable, our allocation was one respectable top-20 system. Node count does not gate scaling, because the metadata plane is off the data path and grows with updates per interval, not nodes. A 10M-block replica is only about 1.16 GB, synced by one MPI_Allgatherv per 100 ms. We will also reword the abstract so the evaluated 256-GPU scale is clear.
 
-**Fault tolerance.** We design CASCADE as a cache and treat its data as temporary and non-persistent, so node failure is a non-event. A lost block is a cache miss that the system recomputes or reads from the durable Lustre tier, and only cached state is lost, never the underlying data. We add no in-memory replication, which would undo the 93 to 94 percent footprint reduction, though CASCADE can write blocks straight to Lustre when durability is wanted.
+## F. Fault tolerance and tiering
+
+**Fault tolerance.** We design CASCADE as a cache and treat its data as temporary and non-persistent, so node failure is a non-event. A lost block is a cache miss, recomputed or read from the durable Lustre tier, and only cached state is lost, never the underlying data. We add no in-memory replication, which would undo the 93 to 94 percent footprint reduction, though CASCADE can write blocks straight to Lustre when durability is wanted.
 
 **Tiering.** While CASCADE is implemented for three tiers, this is not a design decision, just an implementation. Our primary contribution lies in efficient data movement and access, and this contribution can be easily extended to additional data tiers with standard APIs such as POSIX which we already use. We acknowledge the hardcoded implementation, but this does not fundamentally limit the design. The diskless testbed is the hardest case, making systems with NVMe a strict superset.
