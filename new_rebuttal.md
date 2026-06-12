@@ -33,6 +33,6 @@ CASCADE does not place blocks by load, so a hot block draws concurrent first-fet
 
 ## F. Fault tolerance and tiering (R3, R4)
 
-**Fault tolerance.** For a cache, node failure is a non-event. A lost block is a cache miss, recomputed or read from Lustre, so only cached state is lost. KV cache needs no durability, and CASCADE can optionally write blocks straight to Lustre. We add no in-memory replication, which would undo the 93 to 94 percent footprint reduction.
+**Fault tolerance.** We design CASCADE as a cache and treat its data as temporary and non-persistent, so node failure is a non-event. A lost block is a cache miss that the system recomputes or reads from the durable Lustre tier, and only cached state is lost, never the underlying data. We add no in-memory replication, which would undo the 93 to 94 percent footprint reduction, though CASCADE can write blocks straight to Lustre when durability is wanted.
 
 **Tiering.** While CASCADE is implemented for three tiers, this is not a design decision, just an implementation. Our primary contribution lies in efficient data movement and access, and this contribution can be easily extended to additional data tiers with standard APIs such as POSIX which we already use. We acknowledge the hardcoded implementation, but this does not fundamentally limit the design. The diskless testbed is the hardest case, making systems with NVMe a strict superset.
