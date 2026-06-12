@@ -1,16 +1,16 @@
 ## A. Baselines and the parallel file system
 
-When the KV cache spills out of GPU HBM, how far down it spills dictates the architectural constraints. vLLM keeps it in one node's HBM. Mooncake disaggregates it into a cluster pool of DRAM and SSD. CASCADE goes one level deeper, to the parallel file system, the shared data-lake that the faster tiers draw from. In expert and multi-tenant serving, shared data grows in value and the working set outgrows any node, so this shared, high-capacity store is what KV caching needs.
+When the KV cache spills out of GPU HBM, how far down it spills dictates the architectural constraints. vLLM keeps it in one node's HBM. Mooncake disaggregates it into a cluster pool of DRAM and SSD. CASCADE goes one level deeper, to the parallel file system, the shared data-lake that the faster tiers draw from. In expert and multi-tenant serving, shared data grows in value, and the working set outgrows any node, so this shared, high-capacity store is what KV caching needs.
 
 However, the harder constraint is the platform. A batch-scheduled HPC system grants a job a time-bounded allocation released on exit, so it cannot host a coordination service that outlives the allocation. Mooncake's Conductor is exactly that, a standing global scheduler backed by etcd, so its exclusion is structural, not a comparison we declined.
 
-The baselines follow from both. PDC and HDF5 are the standard parallel-I/O middleware HPC uses to stage data on the parallel file system, so they are the baseline at this layer. LMCache (Disk) and LMCache (Redis) instead run inside one allocation, and LMCache (Redis) is the centralized KV-cache baseline that CASCADE's decentralized design improves on.
+The baselines follow from both. PDC and HDF5 are the standard parallel-I/O middleware HPC uses to stage data on the PFS, so they are the baseline at this layer. LMCache (Disk) and LMCache (Redis) instead run inside one allocation, and LMCache (Redis) is the centralized KV-cache baseline that CASCADE's decentralized design improves on.
 
 ## B. Novelty
 
 The novelty is the daemon-free coordination that binds the mechanisms. To our knowledge, CASCADE is the first content-addressed, deduplicated, tiered KV cache that needs no central coordinator, which lets it run on batch-scheduled HPC. The insight is that a KV cache is reconstructible. A lost or stale entry is only a cache miss, never a wrong read. CASCADE can therefore relax the strong consistency that general storage must enforce, and a relaxed metadata plane needs no central service. Every node keeps a local replica synchronized by off-path MPI collectives.
 
-Each prior work lacks a capability CASCADE requires.
+Each prior work lacks the capability CASCADE requires.
 
 - Mooncake uses one-sided RDMA but routes every request through a central, persistent Conductor, which recouples disaggregated serving into one unscalable control plane and cannot run on batch-scheduled HPC.
 - vLLM prefix caching is single-node GPU HBM only.
@@ -18,7 +18,7 @@ Each prior work lacks a capability CASCADE requires.
 - CachedAttention is a single-node hierarchical KV cache for multi-turn conversations, with no cross-node sharing or global deduplication.
 - IMPRESS loads important prefix KV across a single node's GPU, CPU, and local SSD, with no cross-node sharing or global deduplication.
 
-CASCADE alone coordinates a tiered HBM to DRAM to parallel file system hierarchy with zero-copy RDMA, global deduplication, and semantic eviction without a central coordinator, on batch-scheduled HPC. It cuts the cache footprint by 93 to 94 percent and keeps retrieval latency flat where the storage baselines degrade.
+CASCADE alone coordinates a tiered HBM to DRAM to PFS hierarchy with zero-copy RDMA, global deduplication, and semantic eviction without a central coordinator, on batch-scheduled HPC. It cuts the cache footprint by 93 to 94 percent and keeps retrieval latency flat where the storage baselines degrade.
 
 ## C. Workload generality
 
@@ -34,7 +34,7 @@ CASCADE does not place blocks by load, so a hot block draws concurrent first-fet
 
 **Dedup Map and metadata.** The Dedup Map is a one-bit existence map for skipping redundant allocation, while a replicated Semantic Prefix Registry decides eviction protection. Algorithm 1's is_shared conflated the two, which we will correct. The Global Shard Index stores one location per BlockID, and a remote fetch adds none.
 
-**INT8.** INT8 is optional, with FP16 supported, and we will report its quality impact in revision.
+**INT8.** INT8 follows cited prior work, FP16 is also supported, and we will report a quality measurement in revision.
 
 **Framework.** The trace-driven metric labeled TTFT measures block retrieval, and we will rename it Block Retrieval Latency, leaving the standard TTFT in Fig. 13. R4 is right that the absolute CASCADE vs. vLLM comparison mixes caching and runtime, on which we do not rely. The gain is isolated in Fig. 13b, where retrieval replaces 1 s of prefill with a 21 to 27 ms read. The tail-latency figure uses 300 to 500 reads per rank, not 128, with gaps beyond variance.
 
