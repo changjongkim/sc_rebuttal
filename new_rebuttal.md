@@ -3,9 +3,9 @@ We thank the reviewers and respond below.
 
 ## A. Baselines and the PFS (R2, R3, R4)
 
-When the KV cache spills out of GPU HBM, how far down it spills dictates the architectural constraints. vLLM keeps it in one node's HBM. Mooncake disaggregates it into a cluster pool of DRAM and SSD. CASCADE goes one level deeper, to the parallel file system, the shared data-lake that the faster tiers draw from. In expert and multi-tenant serving, shared data grows in value and the working set outgrows any node, so this shared, high-capacity store is what KV caching needs. The baselines follow from this layer. PDC and HDF5 are the parallel-I/O middleware HPC applications already use on a parallel file system, and LMCache (Disk) and LMCache (Redis) are the production KV-cache systems. 
+When the KV cache spills out of GPU HBM, how far down it spills dictates the architectural constraints. vLLM keeps it in one node's HBM. Mooncake disaggregates it into a cluster pool of DRAM and SSD. CASCADE goes one level deeper, to the parallel file system, the shared data-lake that the faster tiers draw from. In expert and multi-tenant serving, shared data grows in value and the working set outgrows any node, so this shared, high-capacity store is what KV caching needs.
 
-The harder constraint is the platform. A batch-scheduled HPC system grants a job a time-bounded allocation released on exit, so no persistent cross-job service can run, and coordination must be daemon-free. Mooncake's Conductor is an always-on global scheduler that a batch allocation cannot host, so the exclusion is structural, not a comparison we declined.
+However, the harder constraint is the platform. A batch-scheduled HPC system grants a job a time-bounded allocation released on exit, so no persistent cross-job service can run, and coordination must be daemon-free. Mooncake's Conductor is an always-on global scheduler that a batch allocation cannot host, so its exclusion is structural, not a comparison we declined. The baselines follow from both. PDC and HDF5 are the standard parallel-I/O middleware HPC uses to stage data on the parallel file system, so they are the natural baseline at this layer. LMCache (Disk) and LMCache (Redis) are the production KV-cache systems that run within a batch allocation.
 
 ## B. Novelty (R4)
 
