@@ -1,10 +1,10 @@
-## A. Baselines and the parallel file system (R2, R3, R4)
+## A. Baselines and the PFS (R2, R3, R4)
 
-When the KV cache spills out of GPU HBM, how far down it spills dictates the architectural constraints. vLLM keeps it in one node's HBM. Mooncake disaggregates it into a cluster pool of DRAM and SSD. CASCADE goes one level deeper, to the parallel file system, the shared data-lake that the faster tiers draw from. In expert and multi-tenant serving, shared data grows in value and the working set outgrows any node, so this shared, high-capacity store is what KV caching needs.
+When the KV cache spills out of GPU HBM, how far down it spills dictates the architectural constraints. vLLM keeps it in one node's HBM. Mooncake disaggregates it into a cluster pool of DRAM and SSD. CASCADE goes one level deeper, to the PFS, the shared data-lake that the faster tiers draw from. In expert and multi-tenant serving, shared data grows in value and the working set outgrows any node, so this shared, high-capacity store is what KV caching needs.
 
 However, the harder constraint is the platform. A batch-scheduled HPC system grants a job a time-bounded allocation released on exit, so it cannot host a coordination service that outlives the allocation. Mooncake's Conductor is exactly that, a standing global scheduler backed by etcd, so its exclusion is structural, not a comparison we declined.
 
-The baselines follow from both. PDC and HDF5 are the standard parallel-I/O middleware HPC uses to stage data on the parallel file system, so they are the baseline at this layer. LMCache (Disk) and LMCache (Redis) instead run inside one allocation, and LMCache (Redis) is the centralized KV-cache baseline that CASCADE's decentralized design improves on.
+The baselines follow from both. PDC and HDF5 are the standard parallel-I/O middleware HPC uses to stage data on the PFS, so they are the baseline at this layer. LMCache (Disk) and LMCache (Redis) instead run inside one allocation, and LMCache (Redis) is the centralized KV-cache baseline that CASCADE's decentralized design improves on.
 
 ## B. Novelty (R4)
 
@@ -18,7 +18,7 @@ Each prior work lacks a capability CASCADE requires.
 - CachedAttention is a single-node hierarchical KV cache for multi-turn conversations, with no cross-node sharing or global deduplication.
 - IMPRESS loads important prefix KV across a single node's GPU, CPU, and local SSD, with no cross-node sharing or global deduplication.
 
-CASCADE alone coordinates a tiered HBM to DRAM to parallel file system hierarchy with zero-copy RDMA, global deduplication, and semantic eviction without a central coordinator, on batch-scheduled HPC. It cuts the cache footprint by 93 to 94 percent and keeps retrieval latency flat where the storage baselines degrade.
+CASCADE alone coordinates a tiered HBM to DRAM to PFS hierarchy with zero-copy RDMA, global deduplication, and semantic eviction without a central coordinator, on batch-scheduled HPC. It cuts the cache footprint by 93 to 94 percent and keeps retrieval latency flat where the storage baselines degrade.
 
 ## C. Workload generality (R1, R3, R4)
 
